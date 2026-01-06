@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trading Journal AI Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #e2e8f0; }
+        .card { background-color: #161c2d; border: 1px solid #2d3748; border-radius: 16px; overflow: hidden; }
+        .input-dark { background-color: #0b0f1a; border: 1px solid #2d3748; color: white; width: 100%; padding: 12px; border-radius: 10px; }
+        .btn-active:active { transform: scale(0.95); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-5xl mx-auto">
+        <header class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-extrabold text-blue-500 italic">TRADING JOURNAL AI</h1>
+                <p class="text-[10px] text-gray-500">GitHub Hosted - Local Storage V3</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="exportToExcel()" class="text-[10px] bg-green-600/20 text-green-500 px-3 py-1 rounded-lg font-bold">XUẤT EXCEL</button>
+                <button onclick="resetData()" class="text-[10px] bg-red-500/10 text-red-500 px-3 py-1 rounded-lg font-bold">XÓA HẾT</button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div class="card p-4 text-center border-b-4 border-b-green-500">
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Lợi nhuận</p>
+                <p id="totalPnL" class="text-2xl font-bold text-green-500">$0</p>
+            </div>
+            <div class="card p-4 text-center border-b-4 border-b-blue-500">
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Tỉ lệ thắng</p>
+                <p id="winRate" class="text-2xl font-bold text-blue-400">0%</p>
+            </div>
+            <div class="card p-4 text-center col-span-2">
+                <canvas id="equityChart" height="60"></canvas>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="card p-5 h-fit shadow-2xl">
+                <form id="tradeForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="pair" placeholder="Cặp (XAUUSD)" class="input-dark font-bold uppercase" required>
+                        <input type="number" id="pnl" placeholder="P&L ($)" class="input-dark font-bold" required>
+                    </div>
+                    <textarea id="notes" rows="2" placeholder="Ghi chú tâm lý & Setup..." class="input-dark text-sm"></textarea>
+                    
+                    <div>
+                        <input type="file" id="imageInput" accept="image/*" class="hidden">
+                        <button type="button" onclick="document.getElementById('imageInput').click()" class="w-full py-3 bg-slate-800 text-xs rounded-xl border border-slate-700 text-gray-300 font-bold btn-active">
+                            📷 ĐÍNH KÈM ẢNH CHART
+                        </button>
+                        <img id="preview" class="w-full h-32 object-cover rounded-lg mt-2 hidden border border-blue-500">
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold btn-active shadow-lg shadow-blue-900/40">LƯU NHẬT KÝ</button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 space-y-4" id="tradeList"></div>
+        </div>
+    </div>
+
+    <script>
+        let trades = JSON.parse(localStorage.getItem('tradingDataGitHub')) || [];
+        let currentImageData = "";
+
+        // Xử lý ảnh
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    currentImageData = e.target.result;
+                    document.getElementById('preview').src = currentImageData;
+                    document.getElementById('preview').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        const ctx = document.getElementById('equityChart').getContext('2d');
+        let equityChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6', borderWidth: 2, tension: 0.3, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)', pointRadius: 0 }] },
+            options: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } }, maintainAspectRatio: false }
+        });
+
+        function updateUI() {
+            const listEl = document.getElementById('tradeList');
+            listEl.innerHTML = '';
+            let totalPnL = 0, wins = 0, chartData = [0];
+
+            trades.forEach(t => {
+                totalPnL += parseFloat(t.pnl);
+                if(t.pnl > 0) wins++;
+                chartData.push(totalPnL);
+            });
+
+            [...trades].reverse().forEach(t => {
+                const audit = t.note.toLowerCase().includes('fomo') || t.pnl < -100 ? '⚠️ Cảnh báo: Tâm lý yếu' : '✅ Kỷ luật tốt';
+                listEl.insertAdjacentHTML('beforeend', `
+                    <div class="card p-4 border-l-4 ${t.pnl >= 0 ? 'border-l-green-500' : 'border-l-red-500'} mb-4">
+                        <div class="flex justify-between font-bold text-lg"><span>${t.pair}</span><span class="${t.pnl >= 0 ? 'text-green-500' : 'text-red-500'}">${t.pnl}$</span></div>
+                        <p class="text-xs text-gray-400 italic my-2">"${t.note}"</p>
+                        <p class="text-[10px] font-bold uppercase ${t.pnl >= 0 ? 'text-blue-400' : 'text-orange-400'}">${audit}</p>
+                        ${t.image ? `<img src="${t.image}" class="w-full rounded-lg mt-3 border border-slate-700">` : ''}
+                    </div>
+                `);
+            });
+
+            document.getElementById('totalPnL').innerText = '$' + totalPnL.toFixed(1);
+            document.getElementById('winRate').innerText = trades.length > 0 ? Math.round((wins/trades.length)*100) + '%' : '0%';
+            equityChart.data.labels = chartData.map((_, i) => i);
+            equityChart.data.datasets[0].data = chartData;
+            equityChart.update();
+            localStorage.setItem('tradingDataGitHub', JSON.stringify(trades));
+        }
+
+        document.getElementById('tradeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            trades.push({ pair: document.getElementById('pair').value.toUpperCase(), pnl: document.getElementById('pnl').value, note: document.getElementById('notes').value, image: currentImageData, date: new Date().toLocaleString() });
+            currentImageData = ""; document.getElementById('preview').classList.add('hidden');
+            updateUI(); this.reset();
+        });
+
+        function exportToExcel() {
+            let csv = "Cặp,P&L,Ghi chú,Ngày\n";
+            trades.forEach(t => { csv += `${t.pair},${t.pnl},${t.note},${t.date}\n`; });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "nhat_ky_trading.csv";
+            link.click();
+        }
+
+        function resetData() { if(confirm('Xóa sạch dữ liệu?')) { trades = []; updateUI(); } }
+        updateUI();
+    </script>
+</body>
+</html>

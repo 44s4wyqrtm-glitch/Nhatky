@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trader Journal V8.5 - Pro RR</title>
+    <title>Trader Journal V8.6 - Image Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #c9d1d9; -webkit-tap-highlight-color: transparent; }
@@ -11,28 +11,17 @@
         .input-dark { background-color: #0d1117; border: 1px solid #30363d; color: white; width: 100%; padding: 12px; border-radius: 8px; font-size: 13px; }
         .btn-ai { background: linear-gradient(90deg, #4f46e5, #9333ea); color: white; font-weight: bold; }
         .tab-active { border-bottom: 2px solid #58a6ff; color: #58a6ff; font-weight: bold; }
-        .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #30363d; font-size: 13px; }
+        .img-preview { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-top: 8px; border: 1px dashed #30363d; }
     </style>
 </head>
 <body class="p-4 pb-20">
     <div class="max-w-md mx-auto">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 italic uppercase">Trader V8.5 Pro</h1>
-            <button onclick="askAI()" class="btn-ai text-[10px] px-3 py-2 rounded-full shadow-lg">🧠 AI COACH</button>
+            <h1 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 italic uppercase">Trader V8.6 Pro</h1>
+            <div id="balanceTotal" class="text-xl font-bold text-green-500">$0.0</div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 mb-6">
-            <div class="card p-4 border-b-2 border-b-green-500">
-                <p class="text-[9px] text-gray-500 font-bold uppercase mb-1">Total Profit</p>
-                <p id="totalPnL" class="text-xl font-bold text-green-500">$0.0</p>
-            </div>
-            <div class="card p-4 border-b-2 border-b-purple-500">
-                <p class="text-[9px] text-gray-500 font-bold uppercase mb-1">Win Rate</p>
-                <p id="winRate" class="text-xl font-bold text-purple-400">0%</p>
-            </div>
-        </div>
-
-        <div class="card p-4 mb-6 border-t-4 border-t-indigo-500">
+        <div class="card p-4 mb-6 border-t-4 border-t-blue-600 shadow-xl">
             <form id="openTradeForm" class="space-y-3">
                 <div class="grid grid-cols-2 gap-2">
                     <input type="text" id="pair" placeholder="CẶP TIỀN" class="input-dark uppercase font-bold" required>
@@ -40,59 +29,61 @@
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <input type="number" step="any" id="sl" placeholder="STOP LOSS" class="input-dark text-red-400" oninput="calculateRR()">
-                    <input type="number" step="any" id="tp" placeholder="TAKE PROFIT" class="input-dark text-green-400" oninput="calculateRR()">
+                    <input type="number" id="tp" placeholder="TP (GỢI Ý 2R)" class="input-dark text-green-400" readonly>
                 </div>
-                <div id="rrDisplay" class="text-[10px] font-bold text-center text-gray-500 bg-gray-900/50 py-1 rounded">R:R Ratio: --</div>
-                <textarea id="notes" placeholder="Kế hoạch: Tại sao m vào lệnh?" class="input-dark text-xs h-16"></textarea>
-                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg active:scale-95 transition">KÍCH HOẠT VỊ THẾ</button>
+                
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Ảnh Chart (H4/M15)</label>
+                    <input type="file" id="chartImg" accept="image/*" class="hidden" onchange="previewImage(this)">
+                    <button type="button" onclick="document.getElementById('chartImg').click()" class="w-full py-2 border border-dashed border-gray-600 rounded-lg text-xs text-gray-400 flex items-center justify-center gap-2">
+                        📷 CHỌN ẢNH CHART
+                    </button>
+                    <img id="imgPre" class="img-preview hidden">
+                </div>
+
+                <textarea id="notes" placeholder="Tại sao vào lệnh? (Phá vỡ cấu trúc M15...)" class="input-dark text-xs h-16"></textarea>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg active:scale-95 transition">VÀO LỆNH (MỤC TIÊU 2R)</button>
             </form>
         </div>
 
-        <div class="mb-8">
-            <h2 class="text-[10px] font-bold text-yellow-500 uppercase mb-3 flex justify-between">VỊ THẾ ĐANG MỞ <span id="runCount" class="bg-yellow-500/10 px-2 rounded">0</span></h2>
-            <div id="runningTrades" class="space-y-2"></div>
+        <div class="flex gap-4 border-b border-gray-800 mb-4 text-[10px] font-bold uppercase">
+            <button onclick="switchTab('history')" id="tabH" class="pb-2 tab-active">Nhật ký</button>
+            <button onclick="switchTab('running')" id="tabR" class="pb-2 text-gray-500">Đang chạy</button>
         </div>
 
-        <div>
-            <div class="flex gap-4 border-b border-gray-800 mb-4 text-[10px] font-bold uppercase">
-                <button onclick="switchTab('history')" id="tabH" class="pb-2 tab-active">Nhật ký</button>
-                <button onclick="switchTab('stats')" id="tabS" class="pb-2 text-gray-500">Phân tích chuyên sâu</button>
-            </div>
-            
-            <div id="historyView" class="space-y-3"></div>
-            
-            <div id="statsView" class="hidden space-y-6">
-                <div><h3 class="text-xs font-bold text-orange-400 mb-2 uppercase">🕒 Khung giờ vàng</h3><div id="timeBox" class="card p-3 divide-y divide-gray-800"></div></div>
-                <div><h3 class="text-xs font-bold text-yellow-500 mb-2 uppercase">📊 Theo cặp tiền</h3><div id="pairBox" class="card p-3 divide-y divide-gray-800"></div></div>
-                <div><h3 class="text-xs font-bold text-blue-400 mb-2 uppercase">📅 Theo Tuần</h3><div id="weeklyBox" class="card p-3 divide-y divide-gray-800"></div></div>
-            </div>
-        </div>
+        <div id="historyView" class="space-y-3"></div>
+        <div id="runningView" class="hidden space-y-2"></div>
     </div>
 
     <script>
-        let trades = JSON.parse(localStorage.getItem('trade_v85')) || [];
+        let trades = JSON.parse(localStorage.getItem('trade_v86')) || [];
+        let currentImgBase64 = "";
 
         function calculateRR() {
             const e = parseFloat(document.getElementById('entry').value);
             const sl = parseFloat(document.getElementById('sl').value);
-            const tp = parseFloat(document.getElementById('tp').value);
-            const display = document.getElementById('rrDisplay');
-            
-            if (e && sl && tp) {
+            if (e && sl) {
                 const risk = Math.abs(e - sl);
-                const reward = Math.abs(tp - e);
-                const rr = (reward / risk).toFixed(2);
-                display.innerText = `R:R Ratio: 1 : ${rr}`;
-                display.className = rr >= 2 ? "text-[10px] font-bold text-center text-green-500 bg-green-500/10 py-1 rounded" : "text-[10px] font-bold text-center text-yellow-500 bg-yellow-500/10 py-1 rounded";
-            } else {
-                display.innerText = "R:R Ratio: --";
-                display.className = "text-[10px] font-bold text-center text-gray-500 bg-gray-900/50 py-1 rounded";
+                const tp2r = e > sl ? e + (risk * 2) : e - (risk * 2);
+                document.getElementById('tp').value = tp2r.toFixed(5);
+            }
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImgBase64 = e.target.result;
+                    const img = document.getElementById('imgPre');
+                    img.src = currentImgBase64;
+                    img.classList.remove('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
         document.getElementById('openTradeForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const now = new Date();
             trades.push({
                 id: Date.now(),
                 pair: document.getElementById('pair').value.toUpperCase(),
@@ -100,17 +91,20 @@
                 sl: document.getElementById('sl').value,
                 tp: document.getElementById('tp').value,
                 note: document.getElementById('notes').value,
+                img: currentImgBase64,
                 status: 'running',
                 pnl: 0,
-                hour: now.getHours(),
-                timestamp: now.getTime(),
-                date: now.toLocaleDateString('vi-VN')
+                date: new Date().toLocaleString('vi-VN', {hour12:false})
             });
-            this.reset(); document.getElementById('rrDisplay').innerText = "R:R Ratio: --"; save();
+            currentImgBase64 = "";
+            document.getElementById('imgPre').classList.add('hidden');
+            this.reset(); save();
         });
 
+        function save() { localStorage.setItem('trade_v86', JSON.stringify(trades)); render(); }
+
         function closeTrade(id) {
-            const p = prompt("Lãi/Lỗ ($):", "0");
+            const p = prompt("Tiền về túi ($):", "0");
             if (p === null) return;
             const idx = trades.findIndex(t => t.id === id);
             trades[idx].pnl = parseFloat(p);
@@ -118,63 +112,43 @@
             save();
         }
 
-        function save() { localStorage.setItem('trade_v85', JSON.stringify(trades)); render(); }
-
         function render() {
-            const runDiv = document.getElementById('runningTrades');
             const histDiv = document.getElementById('historyView');
-            const weekBox = document.getElementById('weeklyBox');
-            const pairBox = document.getElementById('pairBox');
-            const timeBox = document.getElementById('timeBox');
-            
-            runDiv.innerHTML = ''; histDiv.innerHTML = ''; weekBox.innerHTML = ''; pairBox.innerHTML = ''; timeBox.innerHTML = '';
-            
-            let total = 0, winCount = 0, closedCount = 0;
-            let weeklyData = {}, pairData = {};
-            let timeData = { "Sáng (4h-11h)": 0, "Chiều (12h-17h)": 0, "Tối (18h-3h)": 0 };
+            const runDiv = document.getElementById('runningView');
+            histDiv.innerHTML = ''; runDiv.innerHTML = '';
+            let total = 0;
 
             trades.forEach(t => {
+                const imgHTML = t.img ? `<img src="${t.img}" class="w-full h-32 object-cover rounded-md my-2" onclick="window.open('${t.img}')">` : '';
+                
                 if(t.status === 'running') {
                     runDiv.insertAdjacentHTML('beforeend', `
-                        <div class="card p-3 flex justify-between items-center border-l-4 border-l-yellow-500 bg-yellow-500/5">
-                            <div><b class="text-white text-sm">${t.pair}</b><p class="text-[9px] text-gray-500">E: ${t.entry} | SL: ${t.sl} | TP: ${t.tp}</p></div>
-                            <button onclick="closeTrade(${t.id})" class="bg-blue-600 text-white text-[10px] font-bold px-3 py-2 rounded-lg">CHỐT</button>
+                        <div class="card p-3 border-l-4 border-l-yellow-500 mb-2">
+                            <div class="flex justify-between font-bold"><span>${t.pair}</span><button onclick="closeTrade(${t.id})" class="text-blue-400">CHỐT LỆNH</button></div>
+                            <p class="text-[10px] text-gray-500">Entry: ${t.entry} | SL: ${t.sl} | TP: ${t.tp}</p>
+                            ${imgHTML}
                         </div>
                     `);
                 } else {
-                    total += t.pnl; closedCount++;
-                    if(t.pnl > 0) winCount++;
-                    const d = new Date(t.timestamp);
-                    if(t.hour >= 4 && t.hour <= 11) timeData["Sáng (4h-11h)"] += t.pnl;
-                    else if(t.hour >= 12 && t.hour <= 17) timeData["Chiều (12h-17h)"] += t.pnl;
-                    else timeData["Tối (18h-3h)"] += t.pnl;
-                    
-                    const weekKey = `Tuần ${Math.ceil(d.getDate() / 7)}/${d.getMonth()+1}`;
-                    weeklyData[weekKey] = (weeklyData[weekKey] || 0) + t.pnl;
-                    pairData[t.pair] = (pairData[t.pair] || 0) + t.pnl;
-
-                    histDiv.insertAdjacentHTML('afterbegin', `<div class="card p-3 flex justify-between border-l-4 ${t.pnl>=0?'border-l-green-500':'border-l-red-500'} mb-2"><span><b>${t.pair}</b> <small class="text-gray-600">${t.date}</small></span><b class="${t.pnl>=0?'text-green-500':'text-red-500'}">${t.pnl>=0?'+':''}${t.pnl}$</b></div>`);
+                    total += t.pnl;
+                    histDiv.insertAdjacentHTML('afterbegin', `
+                        <div class="card p-3 border-l-4 ${t.pnl>=0?'border-l-green-500':'border-l-red-500'}">
+                            <div class="flex justify-between"><b class="text-sm">${t.pair}</b><b class="${t.pnl>=0?'text-green-500':'text-red-500'}">${t.pnl}$</b></div>
+                            <p class="text-[10px] text-gray-600 italic">${t.note}</p>
+                            ${imgHTML}
+                            <p class="text-[9px] text-gray-700 mt-1">${t.date}</p>
+                        </div>
+                    `);
                 }
             });
-
-            Object.keys(timeData).forEach(k => timeBox.insertAdjacentHTML('beforeend', `<div class="stat-row"><span>${k}</span><b class="${timeData[k]>=0?'text-green-500':'text-red-500'}">${timeData[k].toFixed(1)}$</b></div>`));
-            Object.keys(pairData).sort((a,b) => pairData[b] - pairData[a]).forEach(k => pairBox.insertAdjacentHTML('beforeend', `<div class="stat-row"><span>${k}</span><b>${pairData[k].toFixed(1)}$</b></div>`));
-            Object.keys(weeklyData).reverse().forEach(k => weekBox.insertAdjacentHTML('beforeend', `<div class="stat-row"><span>${k}</span><b>${weeklyData[k].toFixed(1)}$</b></div>`));
-
-            document.getElementById('totalPnL').innerText = '$' + total.toFixed(1);
-            document.getElementById('winRate').innerText = closedCount > 0 ? Math.round((winCount/closedCount)*100) + '%' : '0%';
-            document.getElementById('runCount').innerText = trades.filter(t => t.status === 'running').length;
+            document.getElementById('balanceTotal').innerText = `$${total.toFixed(1)}`;
         }
 
         function switchTab(t) {
             document.getElementById('historyView').classList.toggle('hidden', t !== 'history');
-            document.getElementById('statsView').classList.toggle('hidden', t !== 'stats');
+            document.getElementById('runningView').classList.toggle('hidden', t !== 'running');
             document.getElementById('tabH').className = t === 'history' ? 'pb-2 tab-active' : 'pb-2 text-gray-500';
-            document.getElementById('tabS').className = t === 'stats' ? 'pb-2 tab-active' : 'pb-2 text-gray-500';
-        }
-
-        function askAI() {
-            alert("AI Coach đang soi dữ liệu của m... Chờ bản cập nhật server nhé!");
+            document.getElementById('tabR').className = t === 'running' ? 'pb-2 tab-active' : 'pb-2 text-gray-500';
         }
 
         render();

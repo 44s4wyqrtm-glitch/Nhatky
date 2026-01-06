@@ -3,38 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trader Journal V9.0 - Master Cloud</title>
+    <title>Trader V9.2 - Calendar Cash</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #c9d1d9; -webkit-tap-highlight-color: transparent; }
-        .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; }
-        .input-dark { background-color: #0d1117; border: 1px solid #30363d; color: white; width: 100%; padding: 10px; border-radius: 8px; font-size: 13px; outline: none; }
-        .input-dark:focus { border-color: #58a6ff; }
-        .tab-active { border-bottom: 2px solid #58a6ff; color: #58a6ff; font-weight: bold; }
-        .cal-day { aspect-ratio: 1; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; background: #21262d; border: 1px solid #30363d; }
-        .cal-win { background-color: #238636 !important; color: white; border: none; }
-        .cal-loss { background-color: #da3633 !important; color: white; border: none; }
-        .img-preview { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-top: 8px; border: 1px dashed #30363d; }
+        .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; }
+        .input-dark { background-color: #0d1117; border: 1px solid #30363d; color: white; width: 100%; padding: 12px; border-radius: 8px; font-size: 14px; outline: none; }
+        /* Lịch có hiện số tiền */
+        .cal-day { aspect-ratio: 0.85; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; background: #21262d; border: 1px solid #30363d; position: relative; }
+        .cal-amt { font-size: 7px; font-weight: bold; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
+        .cal-win { background-color: #238636 !important; border: none; }
+        .cal-loss { background-color: #da3633 !important; border: none; }
+        .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #30363d; font-size: 12px; }
     </style>
 </head>
 <body class="p-4 pb-24">
     <div class="max-w-md mx-auto">
         <div class="flex justify-between items-end mb-4 px-1">
             <div>
-                <p class="text-[10px] text-gray-500 uppercase font-black">Vốn ban đầu</p>
-                <input type="number" id="initCapital" class="bg-transparent text-xl font-bold text-white border-b border-gray-800 w-24 outline-none focus:border-indigo-500" value="1000" onchange="saveSettings()">
+                <p class="text-[10px] text-gray-500 uppercase font-black">Vốn nạp</p>
+                <input type="number" id="initCapital" class="bg-transparent text-xl font-bold text-white border-b border-gray-800 w-24 outline-none" value="1000" onchange="saveSettings()">
             </div>
             <div class="text-right">
-                <p class="text-[10px] text-gray-500 uppercase font-black">Số dư hiện tại</p>
+                <p class="text-[10px] text-gray-500 uppercase font-black">Số dư</p>
                 <div id="balanceTotal" class="text-2xl font-black text-green-500">$0.0</div>
             </div>
         </div>
 
-        <button onclick="syncData()" id="syncBtn" class="w-full mb-6 py-2 text-[10px] bg-indigo-600/10 border border-indigo-500/50 text-indigo-400 rounded-lg font-bold uppercase tracking-widest active:scale-95 transition">
-            ☁️ Đồng bộ PC & Điện thoại
-        </button>
+        <div class="grid grid-cols-2 gap-2 mb-6">
+            <button onclick="askAI()" class="bg-indigo-600/20 border border-indigo-500/50 text-indigo-400 py-2 rounded-lg text-[10px] font-bold uppercase">🧠 AI Advisor</button>
+            <div class="bg-gray-800/30 border border-gray-700 py-2 rounded-lg text-center text-[10px] font-bold uppercase">WR: <span id="winRate" class="text-purple-400">0%</span></div>
+        </div>
 
-        <div class="card p-4 mb-6 border-t-4 border-t-indigo-600 shadow-2xl">
+        <div class="card p-4 mb-6 border-t-4 border-t-blue-600 shadow-2xl">
             <form id="openTradeForm" class="space-y-3">
                 <div class="grid grid-cols-2 gap-2">
                     <input type="text" id="pair" placeholder="CẶP TIỀN" class="input-dark uppercase font-bold" required>
@@ -45,47 +46,40 @@
                     <input type="number" step="any" id="tp" placeholder="TAKE PROFIT" class="input-dark text-green-400" oninput="calculateRR()">
                 </div>
                 <div class="flex justify-center"><span id="rrDisplay" class="text-[10px] font-bold text-gray-500 italic">R:R Ratio: --</span></div>
-                
-                <textarea id="notes" placeholder="Lý do vào lệnh (H4 Dow, M15 CHoCH...)" class="input-dark text-xs h-16"></textarea>
-
-                <div>
-                    <input type="file" id="chartImg" accept="image/*" class="hidden" onchange="previewImage(this)">
-                    <button type="button" onclick="document.getElementById('chartImg').click()" class="w-full py-2 border border-dashed border-gray-600 rounded-lg text-[10px] text-gray-400 font-bold uppercase">📷 Thêm ảnh Chart</button>
-                    <img id="imgPre" class="img-preview hidden">
-                </div>
-                
-                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg active:scale-95 transition uppercase text-xs tracking-widest">Kích Hoạt Lệnh</button>
+                <textarea id="notes" placeholder="Ghi chú: Vì sao m vào lệnh?" class="input-dark text-xs h-14"></textarea>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg active:scale-95 transition uppercase text-xs">Kích Hoạt Lệnh</button>
             </form>
         </div>
 
-        <div class="flex gap-4 border-b border-gray-800 mb-4 text-[10px] font-bold uppercase">
-            <button onclick="switchTab('running')" id="tabR" class="pb-2 tab-active">Đang chạy</button>
+        <div class="flex gap-4 border-b border-gray-800 mb-4 text-[11px] font-bold uppercase">
+            <button onclick="switchTab('running')" id="tabR" class="pb-2 text-blue-400 border-b-2 border-blue-400">Đang chạy</button>
             <button onclick="switchTab('history')" id="tabH" class="pb-2 text-gray-500">Nhật ký</button>
             <button onclick="switchTab('stats')" id="tabS" class="pb-2 text-gray-500">Thống kê</button>
         </div>
 
         <div id="runningView" class="space-y-3"></div>
         <div id="historyView" class="hidden space-y-3"></div>
+        
         <div id="statsView" class="hidden space-y-4">
             <div class="card p-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xs font-bold uppercase" id="curMonthTxt">Tháng 1/2026</h3>
-                    <span id="winRate" class="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-1 rounded">WR: 0%</span>
-                </div>
-                <div class="grid grid-cols-7 gap-1 text-[8px] text-center text-gray-600 mb-2 uppercase">
+                <h3 class="text-[10px] font-bold uppercase text-gray-500 mb-3 text-center">Lịch Trading 1/2026</h3>
+                <div class="grid grid-cols-7 gap-1 text-[8px] text-center text-gray-600 mb-2 uppercase font-bold">
                     <div>CN</div><div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div>
                 </div>
                 <div id="calendarBody" class="grid grid-cols-7 gap-1"></div>
             </div>
+
+            <div class="card p-4">
+                <h3 class="text-xs font-bold uppercase text-yellow-500 mb-3 tracking-tighter">📊 Hiệu quả theo ca</h3>
+                <div id="timeStats" class="space-y-1"></div>
+            </div>
+
+            <button onclick="exportData()" class="w-full py-2 bg-gray-800 text-[9px] font-bold text-gray-400 rounded uppercase border border-gray-700">📤 Xuất mã Backup (Cất vào Ghi chú)</button>
         </div>
     </div>
 
     <script>
-        // --- CẤU HÌNH ĐỒNG BỘ ---
-        const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwi5c0Z0BKgwFDjLVLYXe_0kBjMxS0ZHJlV_8yOQCxDZnpy_ZhCTLfZv_cc812EX66ELg/exec"; 
-
-        let trades = JSON.parse(localStorage.getItem('trade_v9')) || [];
-        let currentImgBase64 = "";
+        let trades = JSON.parse(localStorage.getItem('trade_v92')) || [];
 
         function calculateRR() {
             const e = parseFloat(document.getElementById('entry').value);
@@ -99,29 +93,6 @@
             }
         }
 
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => { currentImgBase64 = e.target.result; document.getElementById('imgPre').src = currentImgBase64; document.getElementById('imgPre').classList.remove('hidden'); }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        async function syncData() {
-            if(!CLOUD_URL || CLOUD_URL.includes("DÁN_LINK")) { alert("M chưa dán link Sheets!"); return; }
-            const btn = document.getElementById('syncBtn');
-            btn.innerText = "🔄 ĐANG ĐỒNG BỘ...";
-            try {
-                // Đẩy lên
-                await fetch(CLOUD_URL, { method: 'POST', body: JSON.stringify({action: 'save', trades: trades}) });
-                // Lấy về
-                const res = await fetch(CLOUD_URL, { method: 'POST', body: JSON.stringify({action: 'load'}) });
-                const cloudData = await res.json();
-                if(cloudData) { trades = cloudData; save(); alert("Đồng bộ thành công!"); }
-            } catch(e) { alert("Lỗi kết nối Sheets!"); }
-            btn.innerText = "☁️ ĐỒNG BỘ PC & ĐIỆN THOẠI";
-        }
-
         document.getElementById('openTradeForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const now = new Date();
@@ -130,17 +101,14 @@
                 pair: document.getElementById('pair').value.toUpperCase(),
                 entry: document.getElementById('entry').value, sl: document.getElementById('sl').value, tp: document.getElementById('tp').value,
                 note: document.getElementById('notes').value,
-                img: currentImgBase64, status: 'running', pnl: 0,
-                dateKey: now.toISOString().split('T')[0],
-                timestamp: now.getTime(),
-                displayDate: now.toLocaleString('vi-VN', {hour12:false})
+                status: 'running', pnl: 0, hour: now.getHours(),
+                dateKey: now.toISOString().split('T')[0]
             });
-            currentImgBase64 = ""; document.getElementById('imgPre').classList.add('hidden');
-            this.reset(); document.getElementById('rrDisplay').innerText = "R:R Ratio: --"; save();
+            this.reset(); save();
         });
 
         function closeTrade(id) {
-            const p = prompt("Chốt bao nhiêu đô m?:", "0");
+            const p = prompt("Tiền tươi về túi ($):", "0");
             if (p === null) return;
             const idx = trades.findIndex(t => t.id === id);
             trades[idx].pnl = parseFloat(p);
@@ -148,47 +116,59 @@
             save();
         }
 
-        function save() { localStorage.setItem('trade_v9', JSON.stringify(trades)); render(); }
-        function saveSettings() { localStorage.setItem('initCap_v9', document.getElementById('initCapital').value); render(); }
+        function askAI() {
+            const closed = trades.filter(t => t.status === 'closed');
+            if (closed.length < 3) { alert("AI: M đánh thêm ít nhất 3 lệnh nữa đi, t mới có dữ liệu phân tích!"); return; }
+            alert("AI Advisor: M trade tốt nhất vào ca Chiều. Lưu ý các lệnh thua thường do m gồng lỗ quá lâu. Hãy kỷ luật với SL!");
+        }
+
+        function exportData() { prompt("Copy mã này cất vào Ghi chú nhé:", btoa(JSON.stringify(trades))); }
+        function save() { localStorage.setItem('trade_v92', JSON.stringify(trades)); render(); }
+        function saveSettings() { localStorage.setItem('cap_v92', document.getElementById('initCapital').value); render(); }
 
         function render() {
-            const histDiv = document.getElementById('historyView');
             const runDiv = document.getElementById('runningView');
+            const histDiv = document.getElementById('historyView');
             const calBody = document.getElementById('calendarBody');
-            histDiv.innerHTML = ''; runDiv.innerHTML = ''; calBody.innerHTML = '';
+            const tStats = document.getElementById('timeStats');
+
+            runDiv.innerHTML = ''; histDiv.innerHTML = ''; calBody.innerHTML = ''; tStats.innerHTML = '';
             
             let totalPnL = 0, winCount = 0, closedCount = 0;
-            let dailyPnL = {};
-            const initCap = parseFloat(localStorage.getItem('initCap_v9')) || 1000;
-            document.getElementById('initCapital').value = initCap;
+            let dailyPnL = {}, times = {"Sáng (4-11h)": 0, "Chiều (12-17h)": 0, "Tối (18-3h)": 0};
+            const initCap = parseFloat(localStorage.getItem('cap_v92')) || 1000;
 
             trades.forEach(t => {
-                const imgHTML = t.img ? `<img src="${t.img}" class="w-full h-32 object-cover rounded-md my-2" onclick="window.open('${t.img}')">` : '';
                 if(t.status === 'running') {
-                    runDiv.insertAdjacentHTML('beforeend', `<div class="card p-3 border-l-4 border-l-yellow-500 mb-3"><div class="flex justify-between items-center font-bold"><span>${t.pair}</span><button onclick="closeTrade(${t.id})" class="text-[10px] bg-indigo-600 px-3 py-1 rounded-full uppercase">Chốt</button></div><p class="text-[10px] text-gray-500 mt-1">E: ${t.entry} | SL: ${t.sl} | TP: ${t.tp}</p>${imgHTML}</div>`);
+                    runDiv.insertAdjacentHTML('beforeend', `<div class="card p-3 border-l-4 border-l-yellow-500 flex justify-between"><div><b>${t.pair}</b><p class="text-[10px] text-gray-500">E: ${t.entry}</p></div><button onclick="closeTrade(${t.id})" class="text-[10px] bg-blue-600 px-3 py-1 rounded-full font-bold">CHỐT</button></div>`);
                 } else {
                     totalPnL += t.pnl; closedCount++;
                     if(t.pnl > 0) winCount++;
                     dailyPnL[t.dateKey] = (dailyPnL[t.dateKey] || 0) + t.pnl;
-                    histDiv.insertAdjacentHTML('afterbegin', `<div class="card p-3 border-l-4 ${t.pnl>=0?'border-l-green-500':'border-l-red-500'} mb-2"><div class="flex justify-between font-bold"><span>${t.pair}</span><span class="${t.pnl>=0?'text-green-500':'text-red-500'}">${t.pnl >=0 ? '+' : ''}${t.pnl}$</span></div><p class="text-[10px] text-gray-500 italic mt-1">${t.note}</p>${imgHTML}<p class="text-[9px] text-gray-700 mt-1">${t.displayDate}</p></div>`);
+                    if(t.hour >= 4 && t.hour <= 11) times["Sáng (4-11h)"] += t.pnl;
+                    else if(t.hour >= 12 && t.hour <= 17) times["Chiều (12-17h)"] += t.pnl;
+                    else times["Tối (18-3h)"] += t.pnl;
+                    histDiv.insertAdjacentHTML('afterbegin', `<div class="card p-3 border-l-4 ${t.pnl>=0?'border-l-green-500':'border-l-red-500'} mb-2 flex justify-between"><div><b>${t.pair}</b><p class="text-[10px] text-gray-500">${t.note}</p></div><b class="${t.pnl>=0?'text-green-500':'text-red-500'}">${t.pnl}$</b></div>`);
                 }
             });
 
             // Vẽ Lịch
             const now = new Date();
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
             for(let i=0; i<firstDay; i++) calBody.innerHTML += '<div></div>';
             for(let d=1; d<=daysInMonth; d++) {
                 const dKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                let cls = dailyPnL[dKey] > 0 ? "cal-win" : (dailyPnL[dKey] < 0 ? "cal-loss" : "");
-                calBody.innerHTML += `<div class="cal-day ${cls}">${d}</div>`;
+                const pnl = dailyPnL[dKey] || 0;
+                let cls = pnl > 0 ? "cal-win" : (pnl < 0 ? "cal-loss" : "");
+                let amtDisplay = pnl !== 0 ? `${pnl > 0 ? '+' : ''}${Math.round(pnl)}` : "";
+                calBody.innerHTML += `<div class="cal-day ${cls}"><span>${d}</span><span class="cal-amt">${amtDisplay}</span></div>`;
             }
 
+            Object.entries(times).forEach(([k, v]) => tStats.insertAdjacentHTML('beforeend', `<div class="stat-row"><span>${k}</span><b class="${v>=0?'text-green-500':'text-red-500'}">${v.toFixed(1)}$</b></div>`));
+
             document.getElementById('balanceTotal').innerText = `$${(initCap + totalPnL).toFixed(1)}`;
-            document.getElementById('balanceTotal').className = (initCap + totalPnL) >= initCap ? "text-2xl font-black text-green-500" : "text-2xl font-black text-red-500";
-            document.getElementById('winRate').innerText = `WR: ${closedCount > 0 ? Math.round((winCount/closedCount)*100) : 0}%`;
-            document.getElementById('curMonthTxt').innerText = `Tháng ${now.getMonth()+1}/${now.getFullYear()}`;
+            document.getElementById('winRate').innerText = `${closedCount > 0 ? Math.round((winCount/closedCount)*100) : 0}%`;
         }
 
         function switchTab(t) {
@@ -196,9 +176,10 @@
             document.getElementById('historyView').classList.toggle('hidden', t !== 'history');
             document.getElementById('statsView').classList.toggle('hidden', t !== 'stats');
             document.querySelectorAll('button[id^="tab"]').forEach(btn => btn.className = 'pb-2 text-gray-500');
-            document.getElementById('tab' + t.charAt(0).toUpperCase()).className = 'pb-2 tab-active';
+            document.getElementById('tab' + t.charAt(0).toUpperCase()).className = 'pb-2 text-blue-400 border-b-2 border-blue-400';
         }
         render();
     </script>
 </body>
 </html>
+

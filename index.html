@@ -3,143 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trading Journal AI - Stats Pro</title>
+    <title>Trading Journal AI - Multi-Trade V7</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0b0f1a; color: #e2e8f0; }
-        .card { background-color: #161c2d; border: 1px solid #2d3748; border-radius: 12px; }
-        .input-dark { background-color: #0b0f1a; border: 1px solid #2d3748; color: white; width: 100%; padding: 10px; border-radius: 8px; font-size: 13px; }
-        .tab-btn { flex: 1; padding: 10px; font-size: 11px; font-weight: bold; border-radius: 8px; transition: 0.2s; color: #64748b; }
-        .tab-active { background-color: #3b82f6; color: white; }
+        body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #c9d1d9; }
+        .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; }
+        .input-dark { background-color: #0d1117; border: 1px solid #30363d; color: white; width: 100%; padding: 12px; border-radius: 8px; font-size: 14px; }
+        .btn-blue { background-color: #238636; color: white; font-weight: bold; width: 100%; padding: 12px; border-radius: 8px; transition: 0.2s; }
+        .btn-blue:active { transform: scale(0.98); }
+        .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: bold; }
+        .tab-active { border-bottom: 2px solid #58a6ff; color: #58a6ff; }
     </style>
 </head>
 <body class="p-4 pb-20">
     <div class="max-w-md mx-auto">
-        <div class="grid grid-cols-2 gap-3 mb-4">
-            <div class="card p-4 text-center border-b-2 border-b-green-500">
-                <p class="text-[9px] text-gray-500 font-bold uppercase">Tổng P&L</p>
-                <p id="totalPnL" class="text-xl font-bold text-green-500">$0</p>
-            </div>
-            <div class="card p-4 text-center border-b-2 border-b-blue-500">
-                <p class="text-[9px] text-gray-500 font-bold uppercase">Tháng này</p>
-                <p id="monthPnL" class="text-xl font-bold text-blue-400">$0</p>
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-xl font-black text-blue-500 italic">V7 <span class="text-white not-italic">PORTFOLIO</span></h1>
+            <div class="text-right">
+                <p class="text-[10px] text-gray-500 font-bold uppercase">Balance P&L</p>
+                <p id="totalPnL" class="text-xl font-bold text-green-500">$0.0</p>
             </div>
         </div>
 
-        <div class="flex gap-2 bg-slate-900/50 p-1 rounded-xl mb-4">
-            <button onclick="showTab('input')" id="tab1" class="tab-btn tab-active">NHẬP LỆNH</button>
-            <button onclick="showTab('stats')" id="tab2" class="tab-btn">THỐNG KÊ CHI TIẾT</button>
+        <div class="card p-4 mb-6 border-t-4 border-t-blue-500">
+            <h2 class="text-xs font-bold mb-4 text-blue-400 uppercase tracking-widest">Mở vị thế mới</h2>
+            <form id="openTradeForm" class="space-y-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="pair" placeholder="Cặp (BTC, Gold...)" class="input-dark font-bold uppercase" required>
+                    <input type="number" step="any" id="entry" placeholder="Giá Entry" class="input-dark">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" step="any" id="sl" placeholder="Stoploss" class="input-dark text-red-400">
+                    <input type="number" step="any" id="tp" placeholder="Takeprofit" class="input-dark text-green-400">
+                </div>
+                <textarea id="notes" placeholder="Kế hoạch giao dịch..." class="input-dark text-xs h-16"></textarea>
+                <button type="submit" class="btn-blue bg-blue-600">KÍCH HOẠT VỊ THẾ</button>
+            </form>
         </div>
 
-        <div id="inputTab" class="space-y-4">
-            <div class="card p-4">
-                <form id="tradeForm" class="space-y-3">
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="text" id="pair" placeholder="CẶP TIỀN" class="input-dark font-bold uppercase" required>
-                        <input type="number" step="any" id="pnl" placeholder="LÃI/LỖ ($)" class="input-dark font-bold" required>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2">
-                        <input type="number" step="any" id="entry" placeholder="Entry" class="input-dark text-[11px]">
-                        <input type="number" step="any" id="sl" placeholder="SL" class="input-dark text-[11px]">
-                        <input type="number" step="any" id="tp" placeholder="TP" class="input-dark text-[11px]">
-                    </div>
-                    <textarea id="notes" placeholder="Ghi chú nhanh..." class="input-dark text-xs h-16"></textarea>
-                    <button type="submit" class="w-full bg-blue-600 py-3 rounded-lg font-bold text-sm">LƯU NHẬT KÝ</button>
-                </form>
+        <div class="mb-6">
+            <h2 class="text-xs font-bold mb-3 text-yellow-500 uppercase tracking-widest flex justify-between">
+                Lệnh đang chạy <span id="runCount" class="bg-yellow-500/20 px-2 rounded text-yellow-500">0</span>
+            </h2>
+            <div id="runningTrades" class="space-y-3">
+                <p id="noTrade" class="text-center text-xs text-gray-600 py-4 italic">Chưa có vị thế nào đang mở...</p>
             </div>
-
-            <h3 class="text-[10px] font-bold text-gray-500 uppercase">Lịch sử hôm nay</h3>
-            <div id="dailyList" class="space-y-2"></div>
         </div>
 
-        <div id="statsTab" class="hidden space-y-4">
-            <div class="card p-4">
-                <h4 class="text-xs font-bold text-gray-400 mb-3 uppercase">Lợi nhuận theo Tháng</h4>
-                <div id="monthlyBox" class="space-y-2"></div>
+        <div class="mt-8">
+            <div class="flex gap-4 border-b border-gray-800 mb-4 text-xs font-bold">
+                <button onclick="switchStats('history')" id="tabH" class="pb-2 tab-active">NHẬT KÝ</button>
+                <button onclick="switchStats('stats')" id="tabS" class="pb-2 text-gray-500">THỐNG KÊ</button>
             </div>
-            <div class="card p-4">
-                <h4 class="text-xs font-bold text-gray-400 mb-3 uppercase">Lợi nhuận theo Ngày</h4>
-                <div id="dailyBox" class="space-y-2 max-h-64 overflow-y-auto"></div>
+            
+            <div id="historyView" class="space-y-3"></div>
+            
+            <div id="statsView" class="hidden space-y-4">
+                <div class="card p-4">
+                    <p class="text-[10px] text-gray-500 mb-2 font-bold uppercase">Thống kê theo ngày</p>
+                    <div id="dailyStats" class="space-y-2 text-sm"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let trades = JSON.parse(localStorage.getItem('tradingDataV6')) || [];
+        let trades = JSON.parse(localStorage.getItem('trade_v7')) || [];
 
-        function showTab(name) {
-            document.getElementById('inputTab').classList.toggle('hidden', name !== 'input');
-            document.getElementById('statsTab').classList.toggle('hidden', name !== 'stats');
-            document.getElementById('tab1').classList.toggle('tab-active', name === 'input');
-            document.getElementById('tab2').classList.toggle('tab-active', name === 'stats');
-            if(name === 'stats') renderStats();
+        function save() { localStorage.setItem('trade_v7', JSON.stringify(trades)); render(); }
+
+        document.getElementById('openTradeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            trades.push({
+                id: Date.now(),
+                pair: document.getElementById('pair').value.toUpperCase(),
+                entry: document.getElementById('entry').value,
+                sl: document.getElementById('sl').value,
+                tp: document.getElementById('tp').value,
+                note: document.getElementById('notes').value,
+                status: 'running',
+                pnl: 0,
+                date: new Date().toLocaleDateString('vi-VN')
+            });
+            this.reset(); save();
+        });
+
+        function closeTrade(id) {
+            const pnlVal = prompt("Nhập số tiền LÃI hoặc LỖ của lệnh này ($):", "0");
+            if (pnlVal === null) return;
+            
+            const index = trades.findIndex(t => t.id === id);
+            trades[index].pnl = parseFloat(pnlVal);
+            trades[index].status = 'closed';
+            trades[index].closeDate = new Date().toLocaleDateString('vi-VN');
+            save();
         }
 
-        function updateUI() {
-            const dailyList = document.getElementById('dailyList');
-            dailyList.innerHTML = '';
-            let total = 0, monthTotal = 0;
-            const now = new Date();
-            const todayStr = now.toLocaleDateString('vi-VN');
-            const thisMonth = now.getMonth() + 1 + '/' + now.getFullYear();
+        function render() {
+            const runningDiv = document.getElementById('runningTrades');
+            const historyDiv = document.getElementById('historyView');
+            const dailyDiv = document.getElementById('dailyStats');
+            
+            runningDiv.innerHTML = ''; historyDiv.innerHTML = ''; dailyDiv.innerHTML = '';
+            
+            let total = 0;
+            let runningCount = 0;
+            let dayData = {};
 
             trades.forEach(t => {
-                const val = parseFloat(t.pnl);
-                total += val;
-                if(t.date.includes(thisMonth)) monthTotal += val;
-                if(t.date.split(' ')[0] === todayStr) {
-                    dailyList.insertAdjacentHTML('afterbegin', `
-                        <div class="card p-3 flex justify-between border-l-4 ${val>=0?'border-l-green-500':'border-l-red-500'}">
-                            <span class="font-bold">${t.pair}</span>
-                            <span class="font-bold ${val>=0?'text-green-500':'text-red-500'}">${val}$</span>
+                if(t.status === 'running') {
+                    runningCount++;
+                    runningDiv.insertAdjacentHTML('beforeend', `
+                        <div class="card p-4 border-l-4 border-l-yellow-500">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-bold text-white text-lg">${t.pair}</h3>
+                                    <p class="text-[10px] text-gray-500 italic mt-1">"${t.note}"</p>
+                                </div>
+                                <button onclick="closeTrade(${t.id})" class="bg-white text-black text-[10px] font-bold px-3 py-2 rounded-lg active:scale-90">CHỐT LỆNH</button>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 mt-3 text-[10px] text-gray-400 bg-black/20 p-2 rounded">
+                                <div>E: ${t.entry}</div><div>SL: ${t.sl}</div><div>TP: ${t.tp}</div>
+                            </div>
+                        </div>
+                    `);
+                } else {
+                    total += t.pnl;
+                    dayData[t.date] = (dayData[t.date] || 0) + t.pnl;
+                    historyDiv.insertAdjacentHTML('afterbegin', `
+                        <div class="card p-3 flex justify-between items-center opacity-80 border-l-4 ${t.pnl>=0?'border-l-green-500':'border-l-red-500'}">
+                            <div>
+                                <span class="font-bold text-sm">${t.pair}</span>
+                                <p class="text-[9px] text-gray-600">${t.date}</p>
+                            </div>
+                            <span class="font-bold ${t.pnl>=0?'text-green-500':'text-red-500'}">${t.pnl>=0?'+':''}${t.pnl}$</span>
                         </div>
                     `);
                 }
             });
 
-            document.getElementById('totalPnL').innerText = '$' + total.toFixed(1);
-            document.getElementById('monthPnL').innerText = '$' + monthTotal.toFixed(1);
-            localStorage.setItem('tradingDataV6', JSON.stringify(trades));
-        }
+            document.getElementById('noTrade').style.display = runningCount === 0 ? 'block' : 'none';
+            document.getElementById('runCount').innerText = runningCount;
+            document.getElementById('totalPnL').innerText = (total >= 0 ? '+' : '') + total.toFixed(1) + '$';
+            document.getElementById('totalPnL').className = `text-xl font-bold ${total>=0?'text-green-500':'text-red-500'}`;
 
-        function renderStats() {
-            const mBox = document.getElementById('monthlyBox');
-            const dBox = document.getElementById('dailyBox');
-            mBox.innerHTML = ''; dBox.innerHTML = '';
-            
-            const mData = {}, dData = {};
-            trades.forEach(t => {
-                const d = t.date.split(' ')[0];
-                const m = d.split('/')[1] + '/' + d.split('/')[2];
-                mData[m] = (mData[m] || 0) + parseFloat(t.pnl);
-                dData[d] = (dData[d] || 0) + parseFloat(t.pnl);
-            });
-
-            Object.keys(mData).reverse().forEach(k => {
-                mBox.insertAdjacentHTML('beforeend', `<div class="flex justify-between text-sm"><span>Tháng ${k}</span><span class="font-bold ${mData[k]>=0?'text-green-400':'text-red-400'}">${mData[k].toFixed(1)}$</span></div>`);
-            });
-
-            Object.keys(dData).reverse().forEach(k => {
-                dBox.insertAdjacentHTML('beforeend', `<div class="flex justify-between text-xs py-1 border-b border-gray-800"><span>Ngày ${k}</span><span class="font-bold ${dData[k]>=0?'text-green-500':'text-red-500'}">${dData[k].toFixed(1)}$</span></div>`);
+            Object.keys(dayData).reverse().forEach(d => {
+                dailyDiv.insertAdjacentHTML('beforeend', `<div class="flex justify-between border-b border-gray-800 pb-1"><span>${d}</span><span class="font-bold ${dayData[d]>=0?'text-green-400':'text-red-400'}">${dayData[d]}$</span></div>`);
             });
         }
 
-        document.getElementById('tradeForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            trades.push({
-                pair: document.getElementById('pair').value.toUpperCase(),
-                pnl: document.getElementById('pnl').value,
-                entry: document.getElementById('entry').value,
-                sl: document.getElementById('sl').value,
-                tp: document.getElementById('tp').value,
-                note: document.getElementById('notes').value,
-                date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN')
-            });
-            updateUI(); this.reset();
-        });
+        function switchStats(type) {
+            document.getElementById('historyView').classList.toggle('hidden', type !== 'history');
+            document.getElementById('statsView').classList.toggle('hidden', type !== 'stats');
+            document.getElementById('tabH').classList.toggle('tab-active', type === 'history');
+            document.getElementById('tabS').classList.toggle('tab-active', type === 'stats');
+        }
 
-        updateUI();
+        render();
     </script>
 </body>
 </html>

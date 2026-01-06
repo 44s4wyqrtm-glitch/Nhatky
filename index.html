@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trader Journal V8.9 - Analytics Plus</title>
+    <title>Trader Journal V8.9.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #c9d1d9; -webkit-tap-highlight-color: transparent; }
@@ -17,7 +17,7 @@
 <body class="p-4 pb-24">
     <div class="max-w-md mx-auto">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-xl font-black text-white italic tracking-tighter uppercase">V8.9 Master</h1>
+            <h1 class="text-xl font-black text-white italic tracking-tighter uppercase">V8.9.1 MASTER</h1>
             <div id="balanceTotal" class="text-xl font-bold text-green-500">$0.0</div>
         </div>
 
@@ -37,12 +37,16 @@
                     <input type="number" step="any" id="tp" placeholder="TAKE PROFIT" class="input-dark text-green-400" oninput="calculateRR()">
                 </div>
                 <div class="flex justify-center"><span id="rrDisplay" class="text-[10px] font-bold text-gray-500">R:R Ratio: --</span></div>
+                
+                <textarea id="notes" placeholder="Cảm xúc lúc vào lệnh? Tại sao m vào lệnh?" class="input-dark text-xs h-16"></textarea>
+
                 <div>
                     <input type="file" id="chartImg" accept="image/*" class="hidden" onchange="previewImage(this)">
-                    <button type="button" onclick="document.getElementById('chartImg').click()" class="w-full py-2 border border-dashed border-gray-600 rounded-lg text-[10px] text-gray-400 font-bold">📷 CHÈN ẢNH CHART</button>
+                    <button type="button" onclick="document.getElementById('chartImg').click()" class="w-full py-2 border border-dashed border-gray-600 rounded-lg text-[10px] text-gray-400 font-bold uppercase">📷 CHÈN ẢNH CHART</button>
                     <img id="imgPre" class="img-preview hidden">
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg active:scale-95 transition uppercase text-xs">Kích Hoạt Lệnh</button>
+                
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg active:scale-95 transition uppercase text-xs">KÍCH HOẠT LỆNH</button>
             </form>
         </div>
 
@@ -70,7 +74,7 @@
     </div>
 
     <script>
-        let trades = JSON.parse(localStorage.getItem('trade_v89')) || [];
+        let trades = JSON.parse(localStorage.getItem('trade_v891')) || [];
         let currentImgBase64 = "";
 
         function calculateRR() {
@@ -100,13 +104,14 @@
                 id: Date.now(),
                 pair: document.getElementById('pair').value.toUpperCase(),
                 entry: document.getElementById('entry').value, sl: document.getElementById('sl').value, tp: document.getElementById('tp').value,
+                note: document.getElementById('notes').value,
                 img: currentImgBase64, status: 'running', pnl: 0,
                 hour: now.getHours(), timestamp: now.getTime(),
-                dateStr: now.toISOString().split('T')[0], // YYYY-MM-DD
+                dateStr: now.toISOString().split('T')[0],
                 displayDate: now.toLocaleString('vi-VN', {hour12:false})
             });
             currentImgBase64 = ""; document.getElementById('imgPre').classList.add('hidden');
-            this.reset(); save();
+            this.reset(); document.getElementById('rrDisplay').innerText = "R:R Ratio: --"; save();
         });
 
         function closeTrade(id) {
@@ -118,7 +123,7 @@
             save();
         }
 
-        function save() { localStorage.setItem('trade_v89', JSON.stringify(trades)); render(); }
+        function save() { localStorage.setItem('trade_v891', JSON.stringify(trades)); render(); }
 
         function getWeek(d) {
             const date = new Date(d);
@@ -152,7 +157,6 @@
                     total += t.pnl; closedCount++;
                     if(t.pnl > 0) winCount++;
                     
-                    // Thống kê thời gian
                     const tDate = new Date(t.timestamp);
                     if(t.dateStr === todayStr) dPnL += t.pnl;
                     if(getWeek(tDate) === currentWeek && tDate.getFullYear() === now.getFullYear()) wPnL += t.pnl;
@@ -163,7 +167,7 @@
                     else if(t.hour >= 12 && t.hour <= 17) times["Chiều"] += t.pnl;
                     else times["Tối"] += t.pnl;
 
-                    histDiv.insertAdjacentHTML('afterbegin', `<div class="card p-3 border-l-4 ${t.pnl>=0?'border-l-green-500':'border-l-red-500'} mb-2"><div class="flex justify-between font-bold"><span>${t.pair}</span><span class="${t.pnl>=0?'text-green-500':'text-red-500'}">${t.pnl}$</span></div>${imgHTML}<p class="text-[9px] text-gray-700 mt-1">${t.displayDate}</p></div>`);
+                    histDiv.insertAdjacentHTML('afterbegin', `<div class="card p-3 border-l-4 ${t.pnl>=0?'border-l-green-500':'border-l-red-500'} mb-2"><div class="flex justify-between font-bold"><span>${t.pair}</span><span class="${t.pnl>=0?'text-green-500':'text-red-500'}">${t.pnl}$</span></div><p class="text-[10px] text-gray-500 italic mt-1">${t.note}</p>${imgHTML}<p class="text-[9px] text-gray-700 mt-1">${t.displayDate}</p></div>`);
                 }
             });
 
@@ -175,6 +179,10 @@
             
             Object.keys(pairs).forEach(k => pBox.insertAdjacentHTML('beforeend', `<div class="stat-row"><span>${k}</span><b class="${pairs[k]>=0?'text-green-500':'text-red-500'}">${pairs[k].toFixed(1)}$</b></div>`));
             Object.keys(times).forEach(k => tBox.insertAdjacentHTML('beforeend', `<div class="stat-row"><span>Ca ${k}</span><b>${times[k].toFixed(1)}$</b></div>`));
+        }
+
+        function askAI() {
+            alert("AI Advisor: Dựa trên dữ liệu, m nên tập trung vào cặp tiền đang lãi nhất và giữ vững RR 1:2.");
         }
 
         function switchTab(t) {

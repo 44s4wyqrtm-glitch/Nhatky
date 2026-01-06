@@ -3,127 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trading Journal - Ultimate V10</title>
+    <title>Trading Journal AI - Master V8.2 Time</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0b0e14; color: #c9d1d9; -webkit-tap-highlight-color: transparent; }
-        .card { background-color: #151921; border: 1px solid #2d333b; border-radius: 16px; }
-        .input-dark { background-color: #0b0e14; border: 1px solid #2d333b; color: white; width: 100%; padding: 12px; border-radius: 10px; font-size: 13px; }
-        .input-dark:focus { border-color: #6366f1; outline: none; }
-        .btn-main { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; font-weight: bold; width: 100%; padding: 14px; border-radius: 12px; }
-        .stat-card { background: linear-gradient(145deg, #151921, #0b0e14); border: 1px solid #2d333b; border-radius: 16px; }
+        body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #c9d1d9; -webkit-tap-highlight-color: transparent; }
+        .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; overflow: hidden; }
+        .input-dark { background-color: #0d1117; border: 1px solid #30363d; color: white; width: 100%; padding: 12px; border-radius: 8px; font-size: 14px; }
+        .btn-ai { background: linear-gradient(90deg, #4f46e5, #9333ea); color: white; font-weight: bold; }
+        .tab-active { border-bottom: 2px solid #58a6ff; color: #58a6ff; font-weight: bold; }
+        .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #30363d; font-size: 13px; }
+        .pair-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
-<body class="p-4 pb-24">
+<body class="p-4 pb-20">
     <div class="max-w-md mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 italic uppercase">Trader V8.2 Time</h1>
+            <button onclick="askAI()" class="btn-ai text-[10px] px-3 py-2 rounded-full shadow-lg shadow-indigo-500/20 active:scale-95 transition">🧠 AI COACH</button>
+        </div>
+
+        <div id="aiResponse" class="hidden bg-indigo-900/20 border border-indigo-500/50 p-4 mb-6 rounded-xl">
+            <p id="aiText" class="text-xs italic text-indigo-100 leading-relaxed"></p>
+        </div>
+
         <div class="grid grid-cols-2 gap-3 mb-6">
-            <div class="stat-card p-4 border-b-2 border-b-green-500">
-                <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Lợi nhuận (P&L)</p>
-                <p id="totalPnL" class="text-2xl font-black text-green-400">+0.0$</p>
+            <div class="card p-4 border-b-2 border-b-green-500">
+                <p class="text-[9px] text-gray-500 font-bold uppercase mb-1">Total Profit</p>
+                <p id="totalPnL" class="text-xl font-bold text-green-500">$0.0</p>
             </div>
-            <div class="stat-card p-4 border-b-2 border-b-blue-500">
-                <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Win Rate</p>
-                <p id="winRate" class="text-2xl font-black text-blue-400">0%</p>
+            <div class="card p-4 border-b-2 border-b-purple-500">
+                <p class="text-[9px] text-gray-500 font-bold uppercase mb-1">Win Rate</p>
+                <p id="winRate" class="text-xl font-bold text-purple-400">0%</p>
             </div>
         </div>
 
-        <div class="card p-5 mb-6 shadow-xl shadow-indigo-500/5">
-            <form id="tradeForm" class="space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase">Cặp Tiền</label>
-                        <input type="text" id="pair" placeholder="VD: BTCUSD" class="input-dark mt-1 font-bold uppercase" required>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase">Kết quả ($)</label>
-                        <input type="number" step="any" id="pnl" placeholder="VD: 50 hoặc -20" class="input-dark mt-1">
-                    </div>
+        <div class="card p-4 mb-6 border-t-4 border-t-indigo-500 shadow-xl">
+            <form id="openTradeForm" class="space-y-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="pair" placeholder="CẶP TIỀN" class="input-dark uppercase font-bold" required>
+                    <input type="number" step="any" id="entry" placeholder="GIÁ ENTRY" class="input-dark">
                 </div>
-
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase">Entry</label>
-                        <input type="number" step="any" id="entry" placeholder="Entry" class="input-dark mt-1">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase">Stoploss</label>
-                        <input type="number" step="any" id="sl" placeholder="SL" class="input-dark mt-1 text-red-400">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase">Takeprofit</label>
-                        <input type="number" step="any" id="tp" placeholder="TP" class="input-dark mt-1 text-green-400">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="text-[10px] font-bold text-gray-500 ml-1 uppercase">Nhật ký & Ảnh</label>
-                    <textarea id="notes" placeholder="Cảm xúc lúc vào lệnh? Tại sao thắng/thua?" class="input-dark mt-1 h-20"></textarea>
-                </div>
-
-                <button type="button" class="w-full border border-dashed border-gray-600 text-gray-400 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 active:bg-gray-800">
-                    📷 CHỤP / CHỌN ẢNH
-                </button>
-
-                <button type="submit" class="btn-main active:scale-95 transition-all uppercase tracking-widest text-sm">
-                    Lưu Lệnh (Save)
-                </button>
+                <textarea id="notes" placeholder="Kế hoạch/Cảm xúc: Tại sao m vào lệnh?" class="input-dark text-xs h-16"></textarea>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg active:scale-95 transition">KÍCH HOẠT VỊ THẾ</button>
             </form>
         </div>
 
-        <div class="px-1">
-            <h2 class="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Lịch sử giao dịch</h2>
-            <div id="historyView" class="space-y-3">
+        <div class="mb-8">
+            <h2 class="text-[10px] font-bold text-yellow-500 uppercase mb-3 tracking-widest flex justify-between">
+                Vị thế đang mở <span id="runCount" class="bg-yellow-500/20 px-2 rounded font-bold">0</span>
+            </h2>
+            <div id="runningTrades" class="space-y-2"></div>
+        </div>
+
+        <div>
+            <div class="flex gap-4 border-b border-gray-800 mb-4 text-[10px] font-bold uppercase tracking-wider">
+                <button onclick="switchTab('history')" id="tabH" class="pb-2 tab-active">Nhật ký</button>
+                <button onclick="switchTab('stats')" id="tabS" class="pb-2 text-gray-500">Phân tích chuyên sâu</button>
+            </div>
+            
+            <div id="historyView" class="space-y-3"></div>
+            
+            <div id="statsView" class="hidden space-y-6">
+                <div>
+                    <h3 class="text-xs font-bold text-orange-400 mb-2 uppercase">🕒 Hiệu suất khung giờ</h3>
+                    <div id="timeBox" class="card p-3 divide-y divide-gray-800"></div>
                 </div>
+                <div>
+                    <h3 class="text-xs font-bold text-yellow-500 mb-2 uppercase">📊 Theo cặp tiền</h3>
+                    <div id="pairBox" class="card p-3 divide-y divide-gray-800"></div>
+                </div>
+                <div>
+                    <h3 class="text-xs font-bold text-blue-400 mb-2 uppercase">📅 Theo Tuần</h3>
+                    <div id="weeklyBox" class="card p-3 divide-y divide-gray-800"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        let trades = JSON.parse(localStorage.getItem('trade_v10')) || [];
+        let trades = JSON.parse(localStorage.getItem('trade_v8_time')) || [];
 
-        document.getElementById('tradeForm').addEventListener('submit', function(e) {
+        function save() { localStorage.setItem('trade_v8_time', JSON.stringify(trades)); render(); }
+
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            return Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+        }
+
+        document.getElementById('openTradeForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const pnlVal = parseFloat(document.getElementById('pnl').value) || 0;
+            const now = new Date();
             trades.push({
                 id: Date.now(),
                 pair: document.getElementById('pair').value.toUpperCase(),
-                pnl: pnlVal,
                 entry: document.getElementById('entry').value,
-                sl: document.getElementById('sl').value,
-                tp: document.getElementById('tp').value,
                 note: document.getElementById('notes').value,
-                date: new Date().toLocaleDateString('vi-VN')
+                status: 'running',
+                pnl: 0,
+                hour: now.getHours(),
+                timestamp: now.getTime(),
+                date: now.toLocaleDateString('vi-VN')
             });
             this.reset(); save();
         });
 
-        function save() { localStorage.setItem('trade_v10', JSON.stringify(trades)); render(); }
+        function closeTrade(id) {
+            const p = prompt("Kết quả lãi/lỗ ($):", "0");
+            if (p === null) return;
+            const idx = trades.findIndex(t => t.id === id);
+            trades[idx].pnl = parseFloat(p);
+            trades[idx].status = 'closed';
+            save();
+        }
 
         function render() {
+            const runDiv = document.getElementById('runningTrades');
             const histDiv = document.getElementById('historyView');
-            histDiv.innerHTML = '';
-            let total = 0, wins = 0;
+            const weekBox = document.getElementById('weeklyBox');
+            const pairBox = document.getElementById('pairBox');
+            const timeBox = document.getElementById('timeBox');
+            
+            runDiv.innerHTML = ''; histDiv.innerHTML = ''; weekBox.innerHTML = ''; pairBox.innerHTML = ''; timeBox.innerHTML = '';
+            
+            let total = 0, winCount = 0, closedCount = 0;
+            let weeklyData = {}, pairData = {};
+            let timeData = { "Sáng (4h-11h)": 0, "Chiều (12h-17h)": 0, "Tối (18h-3h)": 0 };
 
             trades.forEach(t => {
-                total += t.pnl;
-                if(t.pnl > 0) wins++;
-                
-                histDiv.insertAdjacentHTML('afterbegin', `
-                    <div class="card p-4 flex justify-between items-center border-l-4 ${t.pnl>=0?'border-l-green-500':'border-l-red-500'}">
-                        <div>
-                            <b class="text-white">${t.pair}</b>
-                            <p class="text-[10px] text-gray-500 mt-1">E: ${t.entry} | SL: ${t.sl} | TP: ${t.tp}</p>
+                if(t.status === 'running') {
+                    runDiv.insertAdjacentHTML('beforeend', `
+                        <div class="card p-3 flex justify-between items-center border-l-4 border-l-yellow-500 bg-yellow-500/5">
+                            <div><b class="text-white text-sm">${t.pair}</b><p class="text-[10px] text-gray-500">Entry: ${t.entry}</p></div>
+                            <button onclick="closeTrade(${t.id})" class="bg-blue-600 text-white text-[10px] font-bold px-3 py-2 rounded-lg">CHỐT</button>
                         </div>
-                        <div class="text-right">
-                            <b class="${t.pnl>=0?'text-green-400':'text-red-400'}">${t.pnl >= 0 ? '+' : ''}${t.pnl}$</b>
-                            <p class="text-[9px] text-gray-600 mt-1">${t.date}</p>
-                        </div>
-                    </div>
-                `);
+                    `);
+                } else {
+                    total += t.pnl; closedCount++;
+                    if(t.pnl > 0) winCount++;
+                    
+                    const d = new Date(t.timestamp);
+                    const weekKey = `Tuần ${getWeekNumber(d)} (${d.getFullYear()})`;
+                    
+                    // Thống kê giờ
+                    if(t.hour >= 4 && t.hour <= 11) timeData["Sáng (4h-11h)"] += t.pnl;
+                    else if(t.hour >= 12 && t.hour <= 17) timeData["Chiều (12h-17h)"] += t.pnl;
+                    else timeData["Tối (18h-3h)"] += t.pnl;
+
+                    weeklyData[weekKey] = (weeklyData[weekKey] || 0) + t.pnl;
+                    pairData[t.pair] = (pairData[t.pair] || 0) + t.pnl;
+
+                    histDiv.insertAdjacentHTML('afterbegin', `<div class="card p-3 flex justify-between border-l-4 ${t.pnl>=0?'border-l-green-500':'border-l-red-500'} mb-2"><span><b>${t.pair}</b> <small class="text-gray-600">${t.date}</small></span><b class="${t.pnl>=0?'text-green-500':'text-red-500'}">${t.pnl>=0?'+':''}${t.pnl}$</b></div>`);
+                }
             });
 
-            document.getElementById('totalPnL').innerText = (total >= 0 ? '+' : '') + total.toFixed(1) + '$';
-            document.getElementById('totalPnL').className = `text-2xl font-black ${total>=0?'text-green-400':'text-red-400'}`;
-            document.getElementById('winRate').innerText = trades.length > 0 ? Math.round((wins/trades.length)*100) + '%' : '0%';
+            // Render Time Stats
+            Object.keys(timeData).forEach(k => {
+                timeBox.insertAdjacentHTML('beforeend', `<div class="stat-row"><span>${k}</span><b class="${timeData[k]>=0?'text-green-500':'text-red-500'}">${timeData[k].toFixed(1)}$</b></div>`);
+            });
+
+            // Render Pair Stats
+            Object.keys(pairData).sort((a,b) => pairData[b] - pairData[a]).forEach(k => {
+                pairBox.insertAdjacentHTML('beforeend', `<div class="stat-row"><span><span class="pair-badge ${pairData[k]>=0?'bg-green-500/20 text-green-500':'bg-red-500/20 text-red-500'}">${k}</span></span><b class="${pairData[k]>=0?'text-green-500':'text-red-500'}">${pairData[k].toFixed(1)}$</b></div>`);
+            });
+
+            // Render Weekly
+            Object.keys(weeklyData).reverse().forEach(k => {
+                weekBox.insertAdjacentHTML('beforeend', `<div class="stat-row"><span>${k}</span><b class="${weeklyData[k]>=0?'text-green-500':'text-red-500'}">${weeklyData[k].toFixed(1)}$</b></div>`);
+            });
+
+            document.getElementById('totalPnL').innerText = '$' + total.toFixed(1);
+            document.getElementById('totalPnL').className = `text-xl font-bold ${total>=0?'text-green-500':'text-red-500'}`;
+            document.getElementById('winRate').innerText = closedCount > 0 ? Math.round((winCount/closedCount)*100) + '%' : '0%';
+            document.getElementById('runCount').innerText = trades.filter(t => t.status === 'running').length;
+        }
+
+        function switchTab(t) {
+            document.getElementById('historyView').classList.toggle('hidden', t !== 'history');
+            document.getElementById('statsView').classList.toggle('hidden', t !== 'stats');
+            document.getElementById('tabH').className = t === 'history' ? 'pb-2 tab-active' : 'pb-2 text-gray-500';
+            document.getElementById('tabS').className = t === 'stats' ? 'pb-2 tab-active' : 'pb-2 text-gray-500';
+        }
+
+        function askAI() {
+            const res = document.getElementById('aiResponse');
+            res.classList.remove('hidden');
+            const closed = trades.filter(t => t.status === 'closed');
+            if(closed.length < 3) {
+                document.getElementById('aiText').innerText = "Số liệu ít quá, m đánh thêm đi rồi t mới soi 'giờ linh' cho m được!";
+                return;
+            }
+            
+            // AI phân tích khung giờ
+            let timeData = { "Sáng": 0, "Chiều": 0, "Tối": 0 };
+            closed.forEach(t => {
+                if(t.hour >= 4 && t.hour <= 11) timeData["Sáng"] += t.pnl;
+                else if(t.hour >= 12 && t.hour <= 17) timeData["Chiều"] += t.pnl;
+                else timeData["Tối"] += t.pnl;
+            });
+
+            const bestTime = Object.keys(timeData).reduce((a, b) => timeData[a] > timeData[b] ? a : b);
+            const worstTime = Object.keys(timeData).reduce((a, b) => timeData[a] < timeData[b] ? a : b);
+
+            let msg = `🌟 Khung giờ m đánh tốt nhất là **buổi ${bestTime}**. Hãy tập trung trade lúc này! \n`;
+            if(timeData[worstTime] < 0) msg += `🛑 Cảnh báo: M đang mất nhiều tiền nhất vào **buổi ${worstTime}**. Xem lại xem lúc đó m có mệt mỏi hay bị tâm lý không?`;
+            
+            document.getElementById('aiText').innerText = msg;
         }
 
         render();
